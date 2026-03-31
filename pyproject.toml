@@ -1,6 +1,27 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=75.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "cq_dagster_embedded"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "dagster",
+    "dagster-cloud",
+]
+
+[dependency-groups]
+dev = [
+    "dagster-webserver",
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["cq_dagster_embedded_tests"]
 
 [tool.dagster]
 module_name = "cq_dagster_embedded"
+
+[tool.uv]
+exclude-newer = "1 week"
