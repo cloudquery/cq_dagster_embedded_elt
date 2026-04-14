@@ -25,3 +25,4 @@ module_name = "cq_dagster_embedded"
 
 [tool.uv]
 exclude-newer = "1 week"
+exclude-newer-package = { pytest = false }
