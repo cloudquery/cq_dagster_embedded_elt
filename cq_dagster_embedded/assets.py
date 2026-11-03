@@ -1,23 +1,27 @@
+import subprocess
 import tempfile
 from dagster import asset, MetadataValue, AssetExecutionContext, MaterializeResult, FilesystemIOManager # import the `dagster` library
 from dagster import asset
-from dagster_shell import execute_shell_command
 from dagster_duckdb import DuckDBResource
 from .constants import CQ_MIGRATE_ONLY, CQ_HN_SPEC
 
 
+def run_cloudquery(context: AssetExecutionContext, *args: str) -> int:
+  process = subprocess.Popen(["cloudquery", *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+  for line in process.stdout:
+    context.log.info(line.rstrip())
+  return process.wait()
+
+
 @asset
 def ingest_hn(context: AssetExecutionContext) -> None:
-  ret = None
   with tempfile.NamedTemporaryFile(mode='w+t') as temp_file:
     temp_file.write(CQ_HN_SPEC)
     temp_file.flush()
-    if CQ_MIGRATE_ONLY:
-        ret = execute_shell_command(f"cloudquery migrate --log-console {temp_file.name}", output_logging="STREAM", log=context.log)
-    else:
-        ret = execute_shell_command(f"cloudquery sync --log-console {temp_file.name}", output_logging="STREAM", log=context.log)
-    if ret[1] != 0:
-      raise Exception(f"cloudquery command failed with exit code {ret[1]}")
+    command = "migrate" if CQ_MIGRATE_ONLY else "sync"
+    exit_code = run_cloudquery(context, command, "--log-console", temp_file.name)
+    if exit_code != 0:
+      raise Exception(f"cloudquery command failed with exit code {exit_code}")
 
 
 @asset(deps=[ingest_hn])
